@@ -6,9 +6,9 @@ EdgeMind is a local AI assistant backend powered by FastAPI and HuggingFace Tran
 
 - **Local GPU inference** — Qwen2.5-1.5B-Instruct on GTX 1650 Ti (float16)
 - **Streaming** — Token-by-token via Server-Sent Events
-- **RAG** — FAISS + Sentence Transformers over a personal knowledge base
+- **RAG** — FAISS + Sentence Transformers (all-MiniLM-L6-v2), MMR diversification, score threshold, source attribution
 - **Conversation memory** — Per-session history persisted in SQLite
-- **Modular providers** — HuggingFace active; OpenAI/Ollama stubs ready
+- **Modular providers** — Local HuggingFace GPU / Cloud HuggingFace Inference API
 - **REST API** — Single `/chat` endpoint with dual JSON/SSE mode
 
 ## Tech Stack
@@ -47,5 +47,6 @@ curl -N -X POST http://localhost:8000/chat \
 | 1 | Base LLM integration (HuggingFace) | ✔ |
 | 2 | Streaming token generation | ✔ |
 | 3 | RAG with knowledge base | ✔ |
+| 3a | RAG — MMR, score threshold, source attribution | ✔ |
 | — | Conversation memory (SQLite) | ✔ |
 | 4 | Fine-tune in Colab & deploy custom model | ⏸️ on hold |

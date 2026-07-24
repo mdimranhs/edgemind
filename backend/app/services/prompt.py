@@ -10,7 +10,9 @@ Rules:
 - Be professional, helpful, and accurate.
 - Never fabricate information.
 
-CRITICAL: Below you will be given current information from a web search. This information is more recent than your training data. You MUST base your answer on this information, not on what you learned during training. If the web search information contradicts your training, trust the web search."""
+When context is provided under [Current information], you MUST base your answer on it.
+If the context doesn't contain the answer, say "I don't have enough information."
+When both knowledge base and web search results are provided, prefer the knowledge base for facts about Imran Parthib and use web search for current/ external topics."""
 
 
 class PromptBuilder:
