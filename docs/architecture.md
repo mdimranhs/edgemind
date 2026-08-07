@@ -67,5 +67,13 @@ Single POST `/chat` endpoint. Accepts `session_id`, `messages`, and `stream` fla
 
 Located at `backend/knowledge/`:
 
-- `md-imran-hossain.md` — Owner bio, skills, experience, projects, education, freelance pricing
+- `profile.md` — Owner bio, background, specialties, communication style
+- `skills.md` — Skill tiers and practical experience with each stack
+- `projects.md` — Project summaries with problem, responsibilities, architecture, lessons learned
+- `system_identity.md` — Assistant behavior, confidence, knowledge usage, and tone rules
+- `philosophy.md` — Engineering philosophy and tradeoff style
+- `coding_preferences.md` — Coding, architecture, API, testing, and deployment preferences
+- `current_learning.md` — Current AI, cloud, backend, and architecture focus
+- `goals.md` — Career direction and long-term goals
+- `contact.md` — Public contact and hiring paths
 - `edgemind.md` — Project description, architecture, features, deployment details

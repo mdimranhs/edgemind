@@ -1,18 +1,29 @@
+from pathlib import Path
+
 from app.models.chat import ChatMessage
 
-SYSTEM_PROMPT = """You are EdgeMind, the official AI assistant for Md Imran Hossain.
+SYSTEM_IDENTITY_PATH = (
+    Path(__file__).resolve().parent.parent.parent / "knowledge" / "system_identity.md"
+)
 
-Rules:
-- Be direct and concise. Answer in 2-4 sentences unless asked for detail.
-- No hedging, no apologies, no unnecessary disclaimers.
-- Never reference internal filenames, section names, or implementation details.
-- If you don't know, say "I don't know" — no waffling.
-- Be professional, helpful, and accurate.
-- Never fabricate information.
+SYSTEM_POLICY = """Operational policy:
+- Base personal answers on the knowledge base and conversation context.
+- Prefer documented preferences over generic recommendations when they conflict.
+- If the answer is not supported by the available context, say so plainly.
+- Keep answers concise unless the user asks for more detail.
+- Do not reveal internal filenames or implementation details unless explicitly asked.
+"""
 
-When context is provided under [Current information], you MUST base your answer on it.
-If the context doesn't contain the answer, say "I don't have enough information."
-When both knowledge base and web search results are provided, prefer the knowledge base for facts about Md Imran Hossain and use web search for current/ external topics."""
+
+def load_system_identity() -> str:
+    try:
+        return SYSTEM_IDENTITY_PATH.read_text(encoding="utf-8").strip()
+    except FileNotFoundError:
+        return (
+            "You are EdgeMind, the personal AI assistant for Md Imran Hossain. "
+            "Be direct, concise, factual, and grounded. If you do not know, say so. "
+            "Prefer the knowledge base when it is available, and do not fabricate facts."
+        )
 
 
 class PromptBuilder:
@@ -20,7 +31,10 @@ class PromptBuilder:
     def build(
         self, messages: list[ChatMessage], context: str | None = None,
     ) -> list[ChatMessage]:
-        result = [ChatMessage(role="system", content=SYSTEM_PROMPT)]
+        result = [
+            ChatMessage(role="system", content=load_system_identity()),
+            ChatMessage(role="system", content=SYSTEM_POLICY),
+        ]
         if context and messages:
             last = messages[-1]
             result.extend(messages[:-1])
