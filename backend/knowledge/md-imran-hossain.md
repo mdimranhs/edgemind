@@ -37,7 +37,7 @@
 - YouTube: https://youtube.com/@decode_us
 - Dev.to: https://dev.to/mdimranhs
 - Medium: https://medium.com/@mdimranhs
-- Calendly: https://calendly.com/imranparthib13/30min
+- Calendly: https://calendly.com/mdimranhs/30-min-intro-call
 
 ## Skills
 
