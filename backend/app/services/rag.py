@@ -79,6 +79,13 @@ class RagService:
 
     def _chunk(self, text: str) -> list[str]:
         lines = text.strip().split("\n")
+        title = ""
+        for line in lines:
+            if line.startswith("# ") and not line.startswith("## "):
+                title = line
+                break
+        if title:
+            lines = [line for line in lines if line.strip() != title]
         current: list[str] = []
         result: list[str] = []
         for line in lines:
@@ -95,6 +102,8 @@ class RagService:
             stripped = c.strip()
             if not stripped:
                 continue
+            if title:
+                stripped = f"{title}\n{stripped}"
             if merged:
                 prev_lines = merged[-1].split("\n")
                 curr_lines = stripped.split("\n")
