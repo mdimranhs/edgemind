@@ -67,5 +67,5 @@ Single POST `/chat` endpoint. Accepts `session_id`, `messages`, and `stream` fla
 
 Located at `backend/knowledge/`:
 
-- `imran-parthib.md` — Owner bio, skills, experience, projects, education, freelance pricing
+- `md-imran-hossain.md` — Owner bio, skills, experience, projects, education, freelance pricing
 - `edgemind.md` — Project description, architecture, features, deployment details

@@ -11,7 +11,7 @@
 | — | Conversation memory with SQLite persistence | ✔ |
 | — | Context control (token budget, history trimming via ContextManager) | ✔ |
 | — | Railway deployment (Dockerfile, dual-provider cloud/local) | ✔ |
-| — | Structured knowledge base → 2 files (imran-parthib.md, edgemind.md) | ✔ |
+| — | Structured knowledge base → 2 files (md-imran-hossain.md, edgemind.md) | ✔ |
 
 ## Next
 

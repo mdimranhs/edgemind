@@ -32,7 +32,7 @@ python -m uvicorn app.main:app --reload
 # Non-streaming
 curl -X POST http://localhost:8000/chat \
   -H "Content-Type: application/json" \
-  -d '{"messages": [{"role":"user", "content":"Who is Imran Parthib?"}]}'
+  -d '{"messages": [{"role":"user", "content":"Who is Md Imran Hossain?"}]}'
 
 # Streaming
 curl -N -X POST http://localhost:8000/chat \

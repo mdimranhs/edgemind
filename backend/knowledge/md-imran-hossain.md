@@ -1,4 +1,4 @@
-# Imran Parthib
+# Md Imran Hossain
 
 ## Role
 - Junior Software Engineer at AgamiSoft Ltd. (Mar 2026 – Present)
@@ -29,13 +29,14 @@
 - 400+ commits since 2023 across two active branches (Mar 2026)
 
 ## Contact & Links
-- Email: imranparthib13@gmail.com
-- Portfolio: https://imranparthib.vercel.app
-- GitHub: https://github.com/imranparthib
-- LinkedIn: https://linkedin.com/in/imranparthib
+- Email: mdimranswe@gmail.com
+- Portfolio: https://mdimranhs.vercel.app
+- GitHub: https://github.com/mdimranhs
+- LinkedIn: https://www.linkedin.com/in/mdimranhs
+- Facebook: https://www.facebook.com/mdimranhs.dev
 - YouTube: https://youtube.com/@decode_us
-- Dev.to: https://dev.to/imranparthib
-- Medium: https://medium.com/@imranparthib
+- Dev.to: https://dev.to/mdimranhs
+- Medium: https://medium.com/@mdimranhs
 - Calendly: https://calendly.com/imranparthib13/30min
 
 ## Skills
@@ -91,7 +92,7 @@ Comprehensive e-commerce solution with server-side rendering and optimal perform
 Interactive learning platform for students built with React and Firebase.
 - Stack: React, JavaScript, Tailwind CSS, Firebase
 - Demo: https://pilab.vercel.app
-- Code: https://github.com/ImranParthib/PiLab
+- Code: https://github.com/mdimranhs/PiLab
 
 ### Islamic Mission Japan
 Single-page informational website for the Islamic community in Japan.
@@ -102,7 +103,7 @@ Single-page informational website for the Islamic community in Japan.
 Modern company website showcasing services, team members, and portfolio.
 - Stack: React, JavaScript, Tailwind CSS, HTML5
 - Demo: https://stack-bridge-bay.vercel.app
-- Code: https://github.com/ImranParthib/StackBridge
+- Code: https://github.com/mdimranhs/StackBridge
 
 ### ReactCafe (Learning Platform)
 React-based learning platform focused on modern web technologies with structured content and community space.
@@ -114,13 +115,13 @@ React-based learning platform focused on modern web technologies with structured
 Recipe-sharing web application with intuitive UI for browsing, searching, and exploring recipes.
 - Stack: Next.js, JavaScript
 - Demo: https://recipe-app-task-seven.vercel.app
-- Code: https://github.com/ImranParthib/Recipe-App-Task
+- Code: https://github.com/mdimranhs/Recipe-App-Task
 
 ### Exam-Timer (Utility)
 Interactive countdown timer for exam preparations with visual progress indicator and animated plane icon.
 - Stack: React, JavaScript, Tailwind CSS
 - Demo: https://exam-time-flight.vercel.app
-- Code: https://github.com/ImranParthib/ExamTimeFlight
+- Code: https://github.com/mdimranhs/ExamTimeFlight
 
 ### EdgeMind AI Assistant (this project)
 Local AI assistant backend with GPU inference, streaming, RAG, and conversation memory.
