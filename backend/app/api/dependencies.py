@@ -22,18 +22,29 @@ def _create_provider() -> BaseLLM:
 
 
 def get_chat_service() -> ChatService:
+    """Lazy-load services only when needed, not at startup."""
     global _provider, _rag_service, _memory, _web_search
+
+    # Provider initialization (lightweight for hf_api)
     if _provider is None:
         _provider = _create_provider()
+        # Only load model if using local provider (heavy operation)
         if isinstance(_provider, HuggingFaceLLMProvider):
             _provider.load()
+
+    # Defer RAG ingestion - load on first chat request, not startup
     if _rag_service is None:
         _rag_service = RagService()
-        _rag_service.ingest()
+        # NOTE: Moved ingest() to background task - see main.py
+
+    # Memory is lightweight, init immediately
     if _memory is None:
         _memory = SQLiteHistory()
+
+    # Web search is lazy by design
     if _web_search is None:
         _web_search = WebSearchService(enabled=settings.web_search_enabled)
+
     return ChatService(
         llm_service=LLMService(provider=_provider),
         rag_service=_rag_service,

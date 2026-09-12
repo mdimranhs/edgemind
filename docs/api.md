@@ -59,9 +59,19 @@ Root health check.
 {"message": "Welcome to EdgeMind 🚀"}
 ```
 
+## GET /ping
+
+**Lightweight keepalive endpoint** - no services loaded, <5ms response.
+
+Perfect for uptime monitors and cold start prevention.
+
+```json
+{"status": "ok"}
+```
+
 ## GET /health
 
-Service health check.
+Service health check - loads and verifies all services.
 
 ```json
 {"status": "healthy", "service": "EdgeMind API"}
