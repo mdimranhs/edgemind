@@ -2,5 +2,16 @@
 __pycache__
 *.pyc
 .env
+.env.local
 .git
 *.db
+*.sqlite
+*.sqlite3
+.pytest_cache
+.coverage
+htmlcov
+node_modules
+*.log
+.DS_Store
+README.md
+tests/
