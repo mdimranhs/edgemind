@@ -113,12 +113,10 @@ class EdgeMindClient {
     }
   }
 
-  /**
-   * Lightweight health check (uses /ping endpoint)
-   */
-  async ping() {
+  /** Service health check. */
+  async health() {
     try {
-      const response = await fetch(`${this.baseURL}/ping`, {
+      const response = await fetch(`${this.baseURL}/health`, {
         method: 'GET',
         signal: AbortSignal.timeout(5000), // Quick timeout
       });

@@ -32,21 +32,6 @@ export function EdgeMindChat({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  // Pre-warm API on mount
-  useEffect(() => {
-    prewarmAPI();
-  }, []);
-
-  async function prewarmAPI() {
-    try {
-      await fetch(`${apiUrl.replace('/chat', '/ping')}`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000),
-      });
-    } catch {
-      // Silent fail - just a pre-warm
-    }
-  }
 
   async function sendMessage(retryCount = 0) {
     if (!input.trim()) return;

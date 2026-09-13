@@ -95,8 +95,7 @@ NEXT_PUBLIC_API_URL=https://edgemind-api.onrender.com
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
 | `/chat` | POST | Send messages, get AI responses |
-| `/health` | GET | Check API health (loads services) |
-| `/ping` | GET | Lightweight keepalive (no services) |
+| `/health` | GET | Check API health |
 | `/` | GET | Root health check |
 
 See [API Reference](../api.md) for detailed specs.

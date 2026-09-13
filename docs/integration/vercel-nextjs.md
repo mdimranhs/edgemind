@@ -119,24 +119,6 @@ export default async function handler(
 }
 ```
 
-### 3. Pre-warm API (Background)
-
-Create a background pre-warm function to avoid cold starts:
-
-```typescript
-// lib/prewarm-api.ts
-export async function prewarmAPI() {
-  try {
-    await fetch(`${process.env.EDGEMIND_API_URL}/ping`, {
-      method: 'GET',
-      signal: AbortSignal.timeout(5000),
-    });
-  } catch {
-    // Silently fail - it's just a pre-warm
-  }
-}
-```
-
 Call it in your root layout:
 
 ```typescript

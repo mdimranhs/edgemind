@@ -46,7 +46,7 @@ The service health check should use:
 /health
 ```
 
-The existing `/ping` endpoint can be used for a lightweight availability check. The image listens on `0.0.0.0:8000`.
+The image listens on `0.0.0.0:8000`.
 
 After the task definition is registered, create the service with:
 
@@ -80,6 +80,5 @@ The first deployment keeps SQLite and FAISS inside the container for compatibili
 ## Smoke test
 
 ```bash
-curl "https://<ecs-endpoint>/ping"
 curl "https://<ecs-endpoint>/health"
 ```

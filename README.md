@@ -1,10 +1,10 @@
 # EdgeMind 🧠
 
-Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy as a containerized service on AWS with streaming, RAG, and conversation memory.
+Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy as a containerized service on Railway or AWS with streaming, RAG, and conversation memory.
 
 ## ✨ Features
 
-- **🚀 Deployment ready** — Docker image ready for Amazon ECR and ECS Express Mode
+- **🚀 Deployment ready** — Docker image for Railway (IaC) and Amazon ECR / ECS Express Mode
 - **🔄 Streaming** — Token-by-token via Server-Sent Events
 - **🧠 RAG** — FAISS + Sentence Transformers, MMR diversification, source attribution
 - **💾 Conversation memory** — Per-session history in SQLite
@@ -17,7 +17,7 @@ Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy
 - **AI:** HuggingFace Transformers / PyTorch / Sentence Transformers
 - **Search:** FAISS (vector similarity)
 - **Database:** SQLite (aiosqlite)
-- **Deployment:** Docker / Amazon ECR / ECS Express Mode / Vercel-ready
+- **Deployment:** Docker / Railway (CLI + IaC) / Amazon ECR / ECS Express Mode / Vercel-ready
 
 ## 🚀 Quick Start
 
@@ -34,7 +34,7 @@ uvicorn app.main:app --reload
 
 ```bash
 # Health check
-curl http://localhost:8000/ping
+curl http://localhost:8000/health
 
 # Non-streaming chat
 curl -X POST http://localhost:8000/chat \
@@ -50,6 +50,7 @@ curl -N -X POST http://localhost:8000/chat \
 ## 📚 Documentation
 
 ### Getting Started
+- **[Railway Deployment Guide](docs/railway.md)** - Deploy with the Railway CLI + IaC
 - **[Deployment Guide](docs/deployment.md)** - Deploy to AWS ECR and ECS Express Mode
 - **[API Reference](docs/api.md)** - Complete endpoint documentation
 - **[Architecture](docs/architecture.md)** - System design and components
@@ -85,14 +86,17 @@ See: [Vercel Integration Guide](docs/integration/vercel-nextjs.md)
 Deploy as a standalone service for any frontend:
 
 ```bash
-# Deploy to AWS
+# Deploy to Railway
+railway up
+
+# Or deploy to AWS
 docker build --platform linux/amd64 -t edgemind-api .
 
 # Use from anywhere
-curl https://your-ecs-endpoint/chat -d '...'
+curl https://your-endpoint/chat -d '...'
 ```
 
-See: [Deployment Guide](docs/deployment.md)
+See: [Railway Deployment Guide](docs/railway.md) · [Deployment Guide](docs/deployment.md)
 
 ## 📊 Progress
 
@@ -105,6 +109,7 @@ See: [Deployment Guide](docs/deployment.md)
 | Conversation memory | ✅ Complete |
 | Production optimizations | ✅ Complete |
 | AWS container deployment | 🚧 In progress |
+| Railway deployment (CLI + IaC) | ✅ Complete |
 | Cloud database and vector store | 🚧 Planned |
 | Frontend integration docs | ✅ Complete |
 | Fine-tuned model | ⏸️ On hold |
@@ -131,6 +136,22 @@ WEB_SEARCH_ENABLED=True
 
 ## 🌐 Deployment
 
+### Railway (CLI)
+
+Deployment is defined in code with [Infrastructure as Code](docs/railway.md) — `.railway/railway.ts` creates the `edgemind` service, `/health` check, and environment variables.
+
+```bash
+npm install              # Railway IaC SDK
+railway login
+railway init             # create a project
+railway config apply     # apply infra (service + env)
+railway variables set "HF_TOKEN=hf_..."   # secret stays out of git
+railway up               # build & deploy the Docker image
+railway domain           # generate a public URL
+```
+
+See: [Railway Deployment Guide](docs/railway.md)
+
 ### AWS ECS Express Mode
 
 ```bash
@@ -150,7 +171,7 @@ MIT License - see LICENSE file
 
 ## 🔗 Links
 
-- **Live API:** Configure after the ECS deployment
+- **Live API:** Configure after deploying on Railway (`railway domain`) or AWS ECS
 - **Portfolio:** [mdimranhs.vercel.app](https://mdimranhs.vercel.app)
 - **Documentation:** [docs/](docs/)
 
