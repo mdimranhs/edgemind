@@ -44,7 +44,7 @@ class ChatService:
             if chunks:
                 parts.append("Knowledge base:\n" + "\n\n".join(chunks))
 
-        if self._web_search:
+        if self._web_search and _SCOPE_KEYWORDS.search(query):
             results = await self._web_search.search(query)
             logger.info("Web search for %r returned %d results", query, len(results))
             if results:
