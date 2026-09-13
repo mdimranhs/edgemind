@@ -2,7 +2,7 @@ services:
   - type: web
     name: edgemind-api
     runtime: docker
-    plan: free
+    plan: starter
     branch: main
     healthCheckPath: /health
     envVars:

@@ -13,6 +13,14 @@ class HuggingFaceInferenceAPIProvider(BaseLLM):
         self.model_id = settings.hf_model
         self.client = AsyncInferenceClient(token=settings.hf_token or None)
 
+    async def warm(self) -> None:
+        """Send a tiny request to keep the model loaded on the provider."""
+        await self.client.chat_completion(
+            messages=[{"role": "user", "content": "ok"}],
+            model=self.model_id,
+            max_tokens=1,
+        )
+
     async def generate(self, messages: list[ChatMessage]) -> str:
         result = await self.client.chat_completion(
             messages=[{"role": m.role, "content": m.content} for m in messages],

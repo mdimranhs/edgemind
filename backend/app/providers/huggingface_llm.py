@@ -36,6 +36,10 @@ class HuggingFaceLLMProvider(BaseLLM):
         )
         self.model.eval()
 
+    async def warm(self) -> None:
+        """Ensure the model weights and tokenizer are loaded."""
+        self._ensure_loaded()
+
     def _ensure_loaded(self) -> None:
         if self.tokenizer is None or self.model is None:
             self.load()

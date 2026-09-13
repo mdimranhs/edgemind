@@ -1,4 +1,3 @@
-import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -12,23 +11,11 @@ setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Async startup/shutdown with background RAG ingestion."""
-    # Startup: Defer heavy RAG ingestion to background
-    asyncio.create_task(_warmup_background())
+    """Do not accept traffic until RAG and the provider are warm."""
+    from app.api.dependencies import initialize_for_startup
+
+    await initialize_for_startup()
     yield
-    # Shutdown: cleanup if needed
-
-
-async def _warmup_background():
-    """Background task to warm up RAG after server starts."""
-    await asyncio.sleep(2)  # Let server respond to health checks first
-    try:
-        from app.api.dependencies import _rag_service
-        if _rag_service is not None and hasattr(_rag_service, 'ingest'):
-            _rag_service.ingest()
-    except Exception as e:
-        import logging
-        logging.warning(f"Background RAG warmup failed: {e}")
 
 
 app = FastAPI(
@@ -50,3 +37,15 @@ async def root():
 async def ping():
     """Lightweight keepalive endpoint - no dependencies loaded."""
     return {"status": "ok"}
+
+
+@app.get("/warmup")
+async def warmup():
+    """Re-trigger provider warmup.
+
+    Hit by keepalive/cron to keep the HuggingFace model replica warm between
+    real requests, so /chat doesn't pay the model-load cost.
+    """
+    from app.api import dependencies as deps
+    await deps.warm_provider()
+    return {"status": "warmed"}
