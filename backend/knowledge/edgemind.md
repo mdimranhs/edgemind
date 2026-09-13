@@ -22,7 +22,7 @@ Architecture:
 - SQLiteHistory per-session persistence
 
 Default Model (local): Qwen/Qwen2.5-1.5B-Instruct
-Cloud Model: Qwen/Qwen3.5-27B (via HF Inference Providers)
+Cloud Model: Qwen/Qwen2.5-7B-Instruct (via HF Inference Providers)
 
 Deployment:
 - Railway (Dockerfile, python:3.14-slim)

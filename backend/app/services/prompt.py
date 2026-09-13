@@ -32,10 +32,8 @@ class PromptBuilder:
     def build(
         self, messages: list[ChatMessage], context: str | None = None,
     ) -> list[ChatMessage]:
-        result = [
-            ChatMessage(role="system", content=load_system_identity()),
-            ChatMessage(role="system", content=SYSTEM_POLICY),
-        ]
+        system_text = f"{load_system_identity()}\n\n{SYSTEM_POLICY}"
+        result = [ChatMessage(role="system", content=system_text)]
         if context and messages:
             last = messages[-1]
             result.extend(messages[:-1])

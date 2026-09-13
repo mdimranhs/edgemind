@@ -6,7 +6,7 @@ export default defineRailway(() => {
     healthcheckTimeout: 300,
     env: {
       LLM_PROVIDER: "hf_api",
-      HF_MODEL: "Qwen/Qwen3.5-27B",
+      HF_MODEL: "Qwen/Qwen2.5-7B-Instruct",
       HF_TOKEN: preserve(),
       DEBUG: "false",
       WEB_SEARCH_ENABLED: "true",
