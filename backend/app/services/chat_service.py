@@ -1,5 +1,4 @@
 import logging
-import re
 from collections.abc import AsyncGenerator
 
 from app.interfaces.memory import BaseMemory
@@ -10,15 +9,6 @@ from app.services.context_manager import trim_history
 from app.services.llm import LLMService
 from app.services.rag import RagService
 from app.services.web_search import WebSearchService
-
-_SCOPE_KEYWORDS = re.compile(
-    r"\b(imran|edgemind|mdimran|hossain|agamisoft|daffodil)\b", re.IGNORECASE,
-)
-
-_OUT_OF_SCOPE_REPLY = (
-    "That topic is outside my scope. I can only answer questions about "
-    "Md Imran Hossain and EdgeMind."
-)
 
 
 class ChatService:
@@ -44,7 +34,7 @@ class ChatService:
             if chunks:
                 parts.append("Knowledge base:\n" + "\n\n".join(chunks))
 
-        if self._web_search and _SCOPE_KEYWORDS.search(query):
+        if self._web_search:
             results = await self._web_search.search(query)
             logger.info("Web search for %r returned %d results", query, len(results))
             if results:
@@ -77,10 +67,6 @@ class ChatService:
     ) -> str:
         full = await self._build_conversation(session_id, messages)
         context = await self._retrieve_context(full)
-        query = full[-1].content if full else ""
-        if not context and not _SCOPE_KEYWORDS.search(query):
-            await self._save_turn(session_id, messages, _OUT_OF_SCOPE_REPLY)
-            return _OUT_OF_SCOPE_REPLY
         reply = await self._llm_service.generate(full, context=context)
         await self._save_turn(session_id, messages, reply)
         return reply
@@ -90,11 +76,6 @@ class ChatService:
     ) -> AsyncGenerator[str, None]:
         full = await self._build_conversation(session_id, messages)
         context = await self._retrieve_context(full)
-        query = full[-1].content if full else ""
-        if not context and not _SCOPE_KEYWORDS.search(query):
-            await self._save_turn(session_id, messages, _OUT_OF_SCOPE_REPLY)
-            yield _OUT_OF_SCOPE_REPLY
-            return
         reply_chunks: list[str] = []
         async for token in self._llm_service.generate_stream(full, context=context):
             reply_chunks.append(token)
