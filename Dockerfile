@@ -19,15 +19,14 @@ RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu 
 
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
 
-# Copy application code
 COPY backend/ .
+
+# Copy the entrypoint script (uses exec form so SIGTERM reaches uvicorn directly)
+COPY docker-entrypoint.sh .
+RUN chmod +x docker-entrypoint.sh
 
 # Expose port
 EXPOSE 8000
 
-# Use uvicorn with optimized settings for faster cold starts
-# --timeout-keep-alive: Keep connections alive longer
-# --workers 1: Single worker for free tier (saves memory)
-# --timeout-graceful-shutdown 5: Faster shutdown on redeploy
-# Shell form required so $PORT expands (Railway injects a dynamic port)
-CMD uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --limit-concurrency 4 --timeout-keep-alive 75 --timeout-graceful-shutdown 5
+# Entrypoint script expands $PORT at runtime while keeping exec-form signal handling
+CMD ["./docker-entrypoint.sh"]

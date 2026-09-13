@@ -12,6 +12,7 @@ SYSTEM_POLICY = """Operational policy:
 - If the answer is not supported by the available context, say so plainly.
 - Keep answers concise unless the user asks for more detail.
 - Do not reveal internal filenames or implementation details unless explicitly asked.
+- Do not answer questions about people, events, or topics unrelated to Md Imran Hossain or EdgeMind. If asked, say the topic is outside your scope.
 """
 
 
@@ -45,7 +46,17 @@ class PromptBuilder:
                 )
             )
         else:
-            result.extend(messages)
+            if messages:
+                last = messages[-1]
+                result.extend(messages[:-1])
+                result.append(
+                    ChatMessage(
+                        role=last.role,
+                        content=f"[No relevant information found in the knowledge base.]\n\nAnswer only if the question is about Md Imran Hossain or EdgeMind. If it is about a different person, place, event, or topic, reply: \"That topic is outside my scope. I can only answer questions about Md Imran Hossain and EdgeMind.\"\n\n{last.content}",
+                    )
+                )
+            else:
+                result.extend(messages)
         return result
 
 
