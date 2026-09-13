@@ -7,16 +7,15 @@ Complete guide for integrating EdgeMind API with Next.js apps on Vercel.
 ## Architecture
 
 ```
-User → Vercel (Next.js) → Render (EdgeMind API)
+User → Vercel (Next.js) → Railway (EdgeMind API)
         ↓ (API Route)       ↓ (FastAPI)
         Edge Function       HuggingFace API
 ```
 
 **Why this setup:**
-- ✅ Hide API URL from client
-- ✅ Add authentication layer
-- ✅ Handle cold starts gracefully
-- ✅ Pre-warm API from edge
+- Hide API URL from client
+- Add authentication layer
+- Handle errors gracefully
 
 ---
 
@@ -28,7 +27,7 @@ Create `.env.local` in your Next.js project:
 
 ```bash
 # .env.local
-EDGEMIND_API_URL=https://edgemind-api.onrender.com
+EDGEMIND_API_URL=https://edgemind-production-6ae2.up.railway.app
 ```
 
 ### 2. Create API Route (Proxy)
@@ -43,29 +42,24 @@ import { NextRequest, NextResponse } from 'next/server';
 
 const API_URL = process.env.EDGEMIND_API_URL;
 
-export const runtime = 'edge'; // Optional: run on edge for lower latency
+export const runtime = 'edge';
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    
+
     const response = await fetch(`${API_URL}/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
-      // Increase timeout for cold starts
-      signal: AbortSignal.timeout(90000), // 90s
+      signal: AbortSignal.timeout(60000),
     });
 
     if (!response.ok) {
       throw new Error(`API responded with ${response.status}`);
     }
 
-    // Stream or JSON based on request
     if (body.stream) {
-      // Pass through SSE stream
       return new NextResponse(response.body, {
         headers: {
           'Content-Type': 'text/event-stream',
@@ -116,22 +110,6 @@ export default async function handler(
   } catch (error) {
     res.status(500).json({ error: 'AI service unavailable' });
   }
-}
-```
-
-Call it in your root layout:
-
-```typescript
-// app/layout.tsx
-import { prewarmAPI } from '@/lib/prewarm-api';
-
-export default function RootLayout({ children }) {
-  // Pre-warm in background on page load
-  if (typeof window !== 'undefined') {
-    prewarmAPI();
-  }
-
-  return <html>{children}</html>;
 }
 ```
 
@@ -281,15 +259,7 @@ export function useEdgeMindStream() {
         if (done) break;
 
         const chunk = decoder.decode(value);
-        const lines = chunk.split('\n');
-
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') return;
-            yield data;
-          }
-        }
+        yield chunk;
       }
     } finally {
       setStreaming(false);
@@ -308,7 +278,6 @@ const handleSendStream = async () => {
   let reply = '';
   for await (const token of chatStream(messages)) {
     reply += token;
-    // Update UI in real-time
     setMessages(prev => [...prev.slice(0, -1), {
       role: 'assistant',
       content: reply
@@ -323,142 +292,28 @@ const handleSendStream = async () => {
 
 ### Vercel Configuration
 
-No special config needed! Just:
-
 1. **Add environment variable in Vercel dashboard:**
    - Variable: `EDGEMIND_API_URL`
-   - Value: `https://edgemind-api.onrender.com`
+   - Value: `https://edgemind-production-6ae2.up.railway.app`
 
 2. **Deploy:**
    ```bash
    vercel deploy
    ```
 
-### Cold Start Handling on Vercel
-
-Since Vercel Edge Functions are always warm, they can handle Render cold starts:
-
-```typescript
-// app/api/chat/route.ts
-export async function POST(request: NextRequest) {
-  const maxRetries = 3;
-  
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      const response = await fetch(`${API_URL}/chat`, {
-        method: 'POST',
-        body: JSON.stringify(await request.json()),
-        signal: AbortSignal.timeout(90000),
-      });
-      
-      return new NextResponse(response.body);
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await new Promise(r => setTimeout(r, 2000 * Math.pow(2, i)));
-    }
-  }
-}
-```
-
----
-
-## Example: Portfolio Integration
-
-For a portfolio site like **mdimranhs.vercel.app**:
-
-```tsx
-// app/portfolio/page.tsx
-import { ChatWidget } from '@/components/ChatWidget';
-
-export default function PortfolioPage() {
-  return (
-    <div>
-      <h1>Md Imran Hossain</h1>
-      <p>Software Engineer | AI Enthusiast</p>
-      
-      {/* Chat widget powered by EdgeMind */}
-      <ChatWidget />
-    </div>
-  );
-}
-```
-
-**Initialize with context:**
-```typescript
-const { chat } = useEdgeMind('portfolio-visitor');
-
-// Pre-load context about you
-useEffect(() => {
-  chat([{
-    role: 'system',
-    content: 'You are an AI assistant on Md Imran Hossain\'s portfolio. Help visitors learn about his work.'
-  }]);
-}, []);
-```
-
----
-
-## Performance Tips
-
-### 1. Pre-warm on Hover
-```tsx
-<button
-  onMouseEnter={() => fetch('/api/chat', { method: 'HEAD' })}
-  onClick={handleSend}
->
-  Send
-</button>
-```
-
-### 2. Debounce Typing Indicators
-```typescript
-const [isTyping, setIsTyping] = useState(false);
-
-useEffect(() => {
-  const timer = setTimeout(() => setIsTyping(false), 500);
-  return () => clearTimeout(timer);
-}, [input]);
-```
-
-### 3. Cache Common Questions
-Use Vercel KV or localStorage:
-```typescript
-const cached = await kv.get(`answer:${question}`);
-if (cached) return cached;
-```
-
----
-
-## Troubleshooting
-
-### Cold Start Timeout
-**Symptom:** Request times out after 10s  
-**Fix:** Increase timeout to 90s in API route
-
-### CORS Errors
-**Symptom:** Network error in browser console  
-**Fix:** You shouldn't get CORS errors since you're using Next.js API route as proxy
-
-### Session Not Persisting
-**Symptom:** AI forgets previous messages  
-**Fix:** Ensure consistent `session_id` across requests
-
 ---
 
 ## Production Checklist
 
 - [ ] API URL in environment variable (not hardcoded)
-- [ ] Error handling for cold starts
-- [ ] Pre-warming on page load
+- [ ] Error handling for API failures
 - [ ] Retry logic in API route
 - [ ] User feedback during loading
 - [ ] Session management implemented
-- [ ] Analytics tracking (optional)
 
 ---
 
 ## Next Steps
 
 - [See React component example](./react-example.jsx)
-- [Learn about cold start solutions](../cold-start-solutions.md)
 - [Review API documentation](../api.md)

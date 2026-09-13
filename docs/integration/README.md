@@ -5,7 +5,7 @@ Connect your frontend to EdgeMind API.
 ## Quick Start
 
 ```javascript
-const response = await fetch('https://your-api.onrender.com/chat', {
+const response = await fetch('https://edgemind-production-6ae2.up.railway.app/chat', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({
@@ -20,15 +20,15 @@ console.log(data.reply);
 ## Available Integrations
 
 ### 📱 [Vercel + Next.js](./vercel-nextjs.md)
-Complete guide for integrating with Next.js apps deployed on Vercel.  
+Complete guide for integrating with Next.js apps deployed on Vercel.
 **Use this if:** Your portfolio is built with Next.js (like mdimranhs.vercel.app)
 
 ### ⚛️ [React Component](./react-example.jsx)
-Ready-to-use React component with chat UI, streaming, and cold start handling.  
+Ready-to-use React component with chat UI, streaming, and session management.
 **Use this if:** You want a drop-in chat widget
 
 ### 🔧 [JavaScript Client](./client-example.js)
-Production-ready client with retry logic, exponential backoff, and pre-warming.  
+Production-ready client with retry logic, streaming, and timeout handling.
 **Use this if:** You need low-level control or vanilla JavaScript
 
 ## Core Concepts
@@ -65,29 +65,11 @@ while (true) {
 }
 ```
 
-### 3. **Cold Start Handling**
-See [Cold Start Solutions](../cold-start-solutions.md) for complete strategies.
-
-**Quick fix:**
-```javascript
-// Retry with exponential backoff
-async function chatWithRetry(messages, maxRetries = 3) {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      return await fetch('/chat', { ... });
-    } catch (error) {
-      if (i === maxRetries - 1) throw error;
-      await sleep(2000 * Math.pow(2, i)); // 2s, 4s, 8s
-    }
-  }
-}
-```
-
 ## Environment Variables
 
 ```bash
 # Frontend .env.local
-NEXT_PUBLIC_API_URL=https://edgemind-api.onrender.com
+NEXT_PUBLIC_API_URL=https://edgemind-production-6ae2.up.railway.app
 ```
 
 ## API Endpoints
@@ -96,6 +78,7 @@ NEXT_PUBLIC_API_URL=https://edgemind-api.onrender.com
 |----------|--------|---------|
 | `/chat` | POST | Send messages, get AI responses |
 | `/health` | GET | Check API health |
+| `/docs` | GET | Interactive API documentation |
 | `/` | GET | Root health check |
 
 See [API Reference](../api.md) for detailed specs.
@@ -111,29 +94,28 @@ See [API Reference](../api.md) for detailed specs.
 
 ### ✅ Do
 - Use streaming for better perceived performance
-- Implement retry logic for cold starts
-- Show user feedback during warmup
-- Pre-warm API on page load or input focus
+- Implement retry logic for transient failures
+- Show user feedback during loading
 - Use unique session IDs per user
+- Handle errors gracefully
 
 ### ❌ Don't
 - Store API responses in state without error handling
-- Ignore cold start scenarios
 - Send entire conversation history every time (backend tracks it)
 - Expose API URL directly in client (use Next.js API routes as proxy)
 
 ## Troubleshooting
 
-### API not responding (>60s)
-**Cause:** Cold start on Render free tier  
-**Fix:** Implement retry logic (see [cold-start-solutions.md](../cold-start-solutions.md))
+### API not responding (>30s)
+**Cause:** Model cold start or provider overload
+**Fix:** Implement retry logic with exponential backoff
 
 ### CORS errors
-**Cause:** Backend CORS not configured for your domain  
+**Cause:** Backend CORS not configured for your domain
 **Fix:** Add your domain to backend CORS settings (or use Next.js API route as proxy)
 
 ### Conversation not persisting
-**Cause:** Not sending `session_id`  
+**Cause:** Not sending `session_id`
 **Fix:** Include `session_id` in every request
 
 ## Need Help?
@@ -141,4 +123,3 @@ See [API Reference](../api.md) for detailed specs.
 - [API Documentation](../api.md)
 - [Architecture Overview](../architecture.md)
 - [Deployment Guide](../deployment.md)
-- [Cold Start Solutions](../cold-start-solutions.md)

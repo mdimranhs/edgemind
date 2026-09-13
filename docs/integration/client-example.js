@@ -1,18 +1,18 @@
 /**
- * Production-grade client for EdgeMind API with cold start handling
+ * Production-grade client for EdgeMind API
  *
  * Features:
- * - Exponential backoff for cold starts
- * - User feedback during warmup
+ * - Exponential backoff with retry
  * - Timeout handling
- * - Retry logic
+ * - Streaming support
+ * - Health check
  */
 
 class EdgeMindClient {
   constructor(baseURL) {
     this.baseURL = baseURL;
     this.maxRetries = 3;
-    this.coldStartTimeout = 90000; // 90s for Render cold start
+    this.timeout = 60000; // 60s
   }
 
   /**
@@ -27,27 +27,18 @@ class EdgeMindClient {
   }
 
   /**
-   * Smart retry with cold start awareness
+   * Smart retry with backoff
    */
   async chat(messages, options = {}) {
     const {
       stream = false,
-      onWarmup = null,
       onRetry = null
     } = options;
 
     for (let attempt = 0; attempt < this.maxRetries; attempt++) {
       try {
-        // Notify user on first attempt if cold start expected
-        if (attempt === 0 && onWarmup) {
-          onWarmup('Waking up API...');
-        }
-
         const controller = new AbortController();
-        const timeoutId = setTimeout(
-          () => controller.abort(),
-          this.coldStartTimeout
-        );
+        const timeoutId = setTimeout(() => controller.abort(), this.timeout);
 
         const response = await fetch(`${this.baseURL}/chat`, {
           method: 'POST',
@@ -69,17 +60,14 @@ class EdgeMindClient {
         return await response.json();
 
       } catch (error) {
-        // Last attempt - throw error
         if (attempt === this.maxRetries - 1) {
           throw new Error(`API failed after ${this.maxRetries} attempts: ${error.message}`);
         }
 
-        // Notify user about retry
         if (onRetry) {
           onRetry(attempt + 1, this.maxRetries);
         }
 
-        // Exponential backoff before retry
         await this.sleep(attempt);
       }
     }
@@ -97,43 +85,20 @@ class EdgeMindClient {
       if (done) break;
 
       const chunk = decoder.decode(value);
-      const lines = chunk.split('\n');
-
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6);
-          if (data === '[DONE]') return;
-          try {
-            yield JSON.parse(data);
-          } catch (e) {
-            console.warn('Failed to parse SSE:', data);
-          }
-        }
-      }
-    }
-  }
-
-  /** Service health check. */
-  async health() {
-    try {
-      const response = await fetch(`${this.baseURL}/health`, {
-        method: 'GET',
-        signal: AbortSignal.timeout(5000), // Quick timeout
-      });
-      return response.ok;
-    } catch {
-      return false;
+      yield chunk;
     }
   }
 
   /**
-   * Pre-warm the API before user interaction
-   * Call this on page load, mouse hover, or tab focus
+   * Service health check
    */
-  async prewarm() {
+  async health() {
     try {
-      await this.ping();
-      return true;
+      const response = await fetch(`${this.baseURL}/health`, {
+        method: 'GET',
+        signal: AbortSignal.timeout(5000),
+      });
+      return response.ok;
     } catch {
       return false;
     }
@@ -144,87 +109,38 @@ class EdgeMindClient {
 // Usage Examples
 // ============================================
 
-// Example 1: Basic chat with cold start handling
+// Example 1: Basic chat
 async function basicExample() {
-  const client = new EdgeMindClient('https://edgemind-api.onrender.com');
+  const client = new EdgeMindClient('https://edgemind-production-6ae2.up.railway.app');
 
   try {
     const response = await client.chat(
       [{ role: 'user', content: 'Hello!' }],
       {
-        onWarmup: (msg) => console.log('🔄', msg),
-        onRetry: (attempt, max) => console.log(`⏳ Retry ${attempt}/${max}...`)
+        onRetry: (attempt, max) => console.log(`Retry ${attempt}/${max}...`)
       }
     );
-    console.log('✅', response);
+    console.log(response);
   } catch (error) {
-    console.error('❌', error.message);
+    console.error(error.message);
   }
 }
 
-// Example 2: Streaming with UI feedback
+// Example 2: Streaming
 async function streamingExample() {
-  const client = new EdgeMindClient('https://edgemind-api.onrender.com');
-
-  const statusDiv = document.getElementById('status');
-  const outputDiv = document.getElementById('output');
+  const client = new EdgeMindClient('https://edgemind-production-6ae2.up.railway.app');
 
   try {
     const stream = await client.chat(
       [{ role: 'user', content: 'Explain RAG' }],
-      {
-        stream: true,
-        onWarmup: (msg) => {
-          statusDiv.textContent = msg;
-          statusDiv.className = 'warming';
-        },
-        onRetry: (attempt, max) => {
-          statusDiv.textContent = `Retrying... ${attempt}/${max}`;
-        }
-      }
+      { stream: true }
     );
 
-    statusDiv.textContent = 'Connected ✓';
-    statusDiv.className = 'success';
-
     for await (const chunk of stream) {
-      outputDiv.textContent += chunk.token || '';
+      process.stdout.write(chunk);
     }
   } catch (error) {
-    statusDiv.textContent = `Error: ${error.message}`;
-    statusDiv.className = 'error';
-  }
-}
-
-// Example 3: Proactive pre-warming strategies
-class SmartUI {
-  constructor(apiURL) {
-    this.client = new EdgeMindClient(apiURL);
-    this.setupPrewarming();
-  }
-
-  setupPrewarming() {
-    // Strategy 1: Pre-warm on page load (background)
-    window.addEventListener('load', () => {
-      this.client.prewarm();
-    });
-
-    // Strategy 2: Pre-warm on input focus (user intent signal)
-    document.getElementById('chatInput')?.addEventListener('focus', () => {
-      this.client.prewarm();
-    });
-
-    // Strategy 3: Pre-warm on mouse hover over send button
-    document.getElementById('sendBtn')?.addEventListener('mouseenter', () => {
-      this.client.prewarm();
-    }, { once: true });
-
-    // Strategy 4: Pre-warm on tab visibility change
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) {
-        this.client.prewarm();
-      }
-    });
+    console.error(error.message);
   }
 }
 
