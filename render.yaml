@@ -16,3 +16,5 @@ services:
         value: false
       - key: WEB_SEARCH_ENABLED
         value: true
+      - key: RAG_LOCAL_FILES_ONLY
+        value: true

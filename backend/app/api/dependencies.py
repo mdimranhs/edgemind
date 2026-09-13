@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from app.core.config import settings
 from app.interfaces.llm import BaseLLM
@@ -16,6 +17,7 @@ _rag_service: RagService | None = None
 _memory: SQLiteHistory | None = None
 _web_search: WebSearchService | None = None
 _ready = False
+_startup_error: str | None = None
 
 
 def _create_provider() -> BaseLLM:
@@ -66,20 +68,30 @@ async def warm_provider() -> None:
 
 async def initialize_for_startup() -> None:
     """Fully prepare the process before FastAPI accepts requests."""
-    global _ready
+    global _ready, _startup_error
     _ready = False
-    init_services()
-    if _rag_service is not None:
-        # Encoding documents is CPU-bound; do not block the event loop while
-        # the application lifespan performs this one-time startup work.
-        await asyncio.to_thread(_rag_service.ingest)
-    await warm_provider()
-    _ready = True
+    _startup_error = None
+    try:
+        # Construction and indexing are CPU/blocking-I/O work. Keep the event
+        # loop available so Uvicorn can bind its port and serve health checks.
+        await asyncio.to_thread(init_services)
+        if _rag_service is not None:
+            await asyncio.to_thread(_rag_service.ingest)
+        await warm_provider()
+        _ready = True
+    except Exception as exc:  # noqa: BLE001
+        _startup_error = str(exc)
+        logging.exception("Startup warmup failed")
 
 
 def is_ready() -> bool:
     """Return whether RAG and provider warmup completed successfully."""
     return _ready
+
+
+def startup_error() -> str | None:
+    """Return the most recent warmup failure, if any."""
+    return _startup_error
 
 
 def get_chat_service() -> ChatService:

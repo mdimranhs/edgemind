@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     llm_provider: str = "local"
 
     web_search_enabled: bool = True
+    rag_local_files_only: bool = False
 
 
 settings = Settings()

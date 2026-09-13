@@ -1,3 +1,4 @@
+import asyncio
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -11,11 +12,12 @@ setup_logging()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Do not accept traffic until RAG and the provider are warm."""
+    """Bind promptly, then prepare dependencies without delaying port discovery."""
     from app.api.dependencies import initialize_for_startup
 
-    await initialize_for_startup()
+    app.state.warmup_task = asyncio.create_task(initialize_for_startup())
     yield
+    app.state.warmup_task.cancel()
 
 
 app = FastAPI(

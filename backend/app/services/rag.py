@@ -4,6 +4,8 @@ import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
 
+from app.core.config import settings
+
 KNOWLEDGE_DIR = Path(__file__).resolve().parent.parent.parent / "knowledge"
 EMBEDDING_MODEL = "all-MiniLM-L6-v2"
 SCORE_THRESHOLD = 0.3
@@ -14,7 +16,10 @@ MMR_TOP_K = 10
 class RagService:
 
     def __init__(self) -> None:
-        self.model = SentenceTransformer(EMBEDDING_MODEL)
+        self.model = SentenceTransformer(
+            EMBEDDING_MODEL,
+            local_files_only=settings.rag_local_files_only,
+        )
         self.index: faiss.Index | None = None
         self.chunks: list[str] = []
         self.sources: list[str] = []
