@@ -64,7 +64,7 @@ Non-secret variables are owned by `.railway/railway.ts` (`env` block). `HF_TOKEN
 | Variable | Default | Notes |
 |----------|---------|-------|
 | `LLM_PROVIDER` | `hf_api` | Cloud inference via Hugging Face Inference API |
-| `HF_MODEL` | `Qwen/Qwen3.8-27B` | Any model your Hugging Face providers support |
+| `HF_MODEL` | `Qwen/Qwen3.5-27B` | Any model your Hugging Face providers support |
 | `HF_TOKEN` | *(on Railway)* | Set with `railway variables set`, never committed |
 | `DEBUG` | `false` | |
 | `WEB_SEARCH_ENABLED` | `true` | Web-search fallback |
