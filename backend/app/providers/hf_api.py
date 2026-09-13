@@ -28,6 +28,7 @@ class HuggingFaceInferenceAPIProvider(BaseLLM):
             max_tokens=2048,
             temperature=0.7,
             top_p=0.9,
+            extra_body={"enable_thinking": False},
         )
         return result.choices[0].message.content
 
@@ -41,6 +42,7 @@ class HuggingFaceInferenceAPIProvider(BaseLLM):
             temperature=0.7,
             top_p=0.9,
             stream=True,
+            extra_body={"enable_thinking": False},
         )
         async for chunk in stream:
             token = chunk.choices[0].delta.content or ""
