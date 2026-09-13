@@ -1,10 +1,10 @@
 # EdgeMind 🧠
 
-Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy on free tier with streaming, RAG, and conversation memory.
+Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy as a containerized service on AWS with streaming, RAG, and conversation memory.
 
 ## ✨ Features
 
-- **🚀 Deployment ready** — Optimized for Render free tier with cold start mitigation
+- **🚀 Deployment ready** — Docker image ready for Amazon ECR and ECS Express Mode
 - **🔄 Streaming** — Token-by-token via Server-Sent Events
 - **🧠 RAG** — FAISS + Sentence Transformers, MMR diversification, source attribution
 - **💾 Conversation memory** — Per-session history in SQLite
@@ -17,7 +17,7 @@ Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy
 - **AI:** HuggingFace Transformers / PyTorch / Sentence Transformers
 - **Search:** FAISS (vector similarity)
 - **Database:** SQLite (aiosqlite)
-- **Deployment:** Docker / Render / Vercel-ready
+- **Deployment:** Docker / Amazon ECR / ECS Express Mode / Vercel-ready
 
 ## 🚀 Quick Start
 
@@ -50,7 +50,7 @@ curl -N -X POST http://localhost:8000/chat \
 ## 📚 Documentation
 
 ### Getting Started
-- **[Deployment Guide](docs/deployment.md)** - Deploy to Render in 5 minutes
+- **[Deployment Guide](docs/deployment.md)** - Deploy to AWS ECR and ECS Express Mode
 - **[API Reference](docs/api.md)** - Complete endpoint documentation
 - **[Architecture](docs/architecture.md)** - System design and components
 
@@ -61,7 +61,7 @@ curl -N -X POST http://localhost:8000/chat \
 - **[JavaScript Client](docs/integration/client-example.js)** - Production client
 
 ### Production
-- **[Cold Start Solutions](docs/cold-start-solutions.md)** - Handle Render free tier sleep
+- **[Architecture](docs/architecture.md)** - AWS target architecture and migration path
 - **[Roadmap](docs/roadmap.md)** - Future features
 
 ## 🎯 Use Cases
@@ -85,11 +85,11 @@ See: [Vercel Integration Guide](docs/integration/vercel-nextjs.md)
 Deploy as a standalone service for any frontend:
 
 ```bash
-# Deploy to Render
-git push origin main  # Auto-deploys via render.yaml
+# Deploy to AWS
+docker build --platform linux/amd64 -t edgemind-api .
 
 # Use from anywhere
-curl https://your-api.onrender.com/chat -d '...'
+curl https://your-ecs-endpoint/chat -d '...'
 ```
 
 See: [Deployment Guide](docs/deployment.md)
@@ -104,8 +104,8 @@ See: [Deployment Guide](docs/deployment.md)
 | MMR + source attribution | ✅ Complete |
 | Conversation memory | ✅ Complete |
 | Production optimizations | ✅ Complete |
-| Render deployment config | ✅ Complete |
-| Cold start mitigation | ✅ Complete |
+| AWS container deployment | 🚧 In progress |
+| Cloud database and vector store | 🚧 Planned |
 | Frontend integration docs | ✅ Complete |
 | Fine-tuned model | ⏸️ On hold |
 
@@ -131,38 +131,14 @@ WEB_SEARCH_ENABLED=True
 
 ## 🌐 Deployment
 
-### Render (Free Tier)
+### AWS ECS Express Mode
 
 ```bash
-# 1. Get HuggingFace token from https://huggingface.co/settings/tokens
-# 2. Push to GitHub
-git push origin main
-
-# 3. Deploy via Render dashboard (detects render.yaml)
-# 4. Add HF_TOKEN environment variable
-# 5. Done! API is live
+# Build and push to ECR, then deploy the image through ECS Express Mode.
+# See docs/deployment.md for the complete AWS CLI workflow.
 ```
 
-**Free tier includes:**
-- ✅ 512MB RAM (sufficient with `hf_api` provider)
-- ✅ Docker support
-- ✅ Auto-deploy on push
-- ⚠️ Sleeps after 15min (mitigated with keepalive)
-
-See: [Deployment Guide](docs/deployment.md)
-
-### Keepalive (Cold Start Prevention)
-
-```bash
-# Option 1: Self-hosted script
-python keepalive.py
-
-# Option 2: UptimeRobot (web service)
-# Monitor: https://your-api.onrender.com/ping
-# Interval: Every 14 minutes
-```
-
-See: [Cold Start Solutions](docs/cold-start-solutions.md)
+ECS Express Mode provides a managed Fargate service, HTTPS endpoint, load balancing, scaling, and CloudWatch monitoring. See: [Deployment Guide](docs/deployment.md)
 
 ## 🤝 Contributing
 
@@ -174,7 +150,7 @@ MIT License - see LICENSE file
 
 ## 🔗 Links
 
-- **Live API:** [Your Render URL]
+- **Live API:** Configure after the ECS deployment
 - **Portfolio:** [mdimranhs.vercel.app](https://mdimranhs.vercel.app)
 - **Documentation:** [docs/](docs/)
 

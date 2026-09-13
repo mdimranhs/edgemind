@@ -1,5 +1,49 @@
 # Architecture
 
+## Production AWS Target
+
+EdgeMind is intended to deploy as a containerized FastAPI service with the following AWS and hosted-service topology:
+
+```text
+Next.js frontend (Vercel)
+            |
+            v
+FastAPI container (ECS Express Mode / AWS Fargate)
+       |              |                 |
+       v              v                 v
+RDS PostgreSQL   Private S3 bucket   Hugging Face API
+  + pgvector       for documents       for Qwen inference
+```
+
+| Component | Service | Purpose |
+|---|---|---|
+| FastAPI | ECS Express Mode / Fargate | Run the EdgeMind API container with HTTPS, health checks, logs, and scaling |
+| Container image | Amazon ECR | Store versioned EdgeMind images |
+| Database | Amazon RDS for PostgreSQL | Chat history and application data |
+| Vector store | `pgvector` in PostgreSQL | Persistent RAG embeddings and similarity search |
+| Documents | Private Amazon S3 bucket | Persistent knowledge files |
+| LLM | Hugging Face Inference API | Qwen cloud inference |
+| Frontend | Vercel | Host the Next.js frontend |
+
+### Migration path
+
+1. Build and test the FastAPI Docker image locally.
+2. Create an ECR repository and push an immutable image tag.
+3. Deploy the image through ECS Express Mode and verify the `/health` endpoint.
+4. Migrate SQLite chat history to RDS PostgreSQL.
+5. Replace the in-memory FAISS index with `pgvector`.
+6. Move knowledge files from `backend/knowledge/` to S3 and grant the ECS task least-privilege access.
+7. Store database credentials, Hugging Face tokens, and application secrets in AWS Secrets Manager or SSM Parameter Store.
+8. Configure the Vercel frontend with the ECS HTTPS API URL.
+
+### Security and operations
+
+- Keep RDS private and allow PostgreSQL traffic only from the ECS task security group.
+- Keep the S3 bucket private and restrict access to the required bucket actions.
+- Do not commit database passwords, API tokens, or JWT secrets.
+- Use immutable ECR image tags for releases instead of relying only on `latest`.
+- Keep local FAISS and SQLite available for development until the managed services are verified.
+
 ## Stack
 
 - **Framework**: FastAPI (Python)
