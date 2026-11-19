@@ -4,11 +4,11 @@
 
 | Milestone | Description | Status |
 |---|---|---|
-| 1 | Replace MockLLMProvider with HuggingFaceLLMProvider (Qwen2.5-1.5B) | ✔ |
+| 1 | Add local and hosted Hugging Face providers | ✔ |
 | 2 | Streaming token generation via TextIteratorStreamer + SSE | ✔ |
 | 3 | RAG with FAISS + Sentence Transformers, knowledge/ ingestion | ✔ |
 | 3a | RAG improvements — MMR, score threshold, source attribution | ✔ |
-| — | Conversation memory with SQLite persistence | ✔ |
+| — | Optional SQLite conversation memory (disabled by default) | ✔ |
 | — | Context control (token budget, history trimming via ContextManager) | ✔ |
 | — | Railway deployment (Dockerfile, dual-provider cloud/local) | ✔ |
 | — | Structured knowledge base → 2 files (md-imran-hossain.md, edgemind.md) | ✔ |

@@ -11,6 +11,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc g++ build-essential && \
     rm -rf /var/lib/apt/lists/*
 
+# Create non-root user for Hugging Face Spaces compatibility
+RUN useradd -m -u 1000 user && \
+    mkdir -p /opt/huggingface /app && \
+    chown -R user:user /opt/huggingface /app
+
 # Copy and install dependencies (cached layer if requirements unchanged)
 COPY backend/requirements.txt .
 RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
@@ -23,10 +28,14 @@ COPY backend/ .
 
 # Copy the entrypoint script (uses exec form so SIGTERM reaches uvicorn directly)
 COPY docker-entrypoint.sh .
-RUN chmod +x docker-entrypoint.sh
+RUN chmod +x docker-entrypoint.sh && \
+    chown -R user:user /app /opt/huggingface
+
+USER user
 
 # Expose port
 EXPOSE 8000
 
 # Entrypoint script expands $PORT at runtime while keeping exec-form signal handling
 CMD ["./docker-entrypoint.sh"]
+

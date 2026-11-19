@@ -66,7 +66,7 @@ ECS Express Mode provisions the Fargate service, HTTPS endpoint, load balancer, 
 
 ```text
 LLM_PROVIDER=hf_api
-HF_MODEL=Qwen/Qwen2.5-1.5B-Instruct
+HF_MODEL=Qwen/Qwen3-8B
 HF_TOKEN=<secret>
 DEBUG=false
 WEB_SEARCH_ENABLED=true
@@ -75,7 +75,7 @@ RAG_LOCAL_FILES_ONLY=true
 
 ## Current migration boundary
 
-The first deployment keeps SQLite and FAISS inside the container for compatibility with local development. RDS PostgreSQL with `pgvector` and S3 document storage are the next migration steps described in [architecture.md](architecture.md).
+The API is stateless by default. FAISS and its embedding model are initialized in process for retrieval. SQLite conversation history is optional (`MEMORY_BACKEND=sqlite`) and should only be enabled when the deployment has persistent storage. RDS PostgreSQL with `pgvector` and S3 document storage remain future migration options.
 
 ## Smoke test
 

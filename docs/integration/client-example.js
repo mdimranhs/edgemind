@@ -1,5 +1,5 @@
 /**
- * Production-grade client for EdgeMind API
+ * Example client for the EdgeMind API
  *
  * Features:
  * - Exponential backoff with retry
@@ -9,8 +9,9 @@
  */
 
 class EdgeMindClient {
-  constructor(baseURL) {
+  constructor(baseURL, sessionId = globalThis.crypto?.randomUUID?.() || `session_${Date.now()}`) {
     this.baseURL = baseURL;
+    this.sessionId = sessionId;
     this.maxRetries = 3;
     this.timeout = 60000; // 60s
   }
@@ -32,6 +33,7 @@ class EdgeMindClient {
   async chat(messages, options = {}) {
     const {
       stream = false,
+      sessionId = this.sessionId,
       onRetry = null
     } = options;
 
@@ -43,7 +45,7 @@ class EdgeMindClient {
         const response = await fetch(`${this.baseURL}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messages, stream }),
+          body: JSON.stringify({ messages, session_id: sessionId, stream }),
           signal: controller.signal,
         });
 
@@ -79,13 +81,25 @@ class EdgeMindClient {
   async *_handleStream(response) {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
+    let buffer = '';
 
     while (true) {
       const { done, value } = await reader.read();
-      if (done) break;
+      buffer += decoder.decode(value || new Uint8Array(), { stream: !done });
+      const events = buffer.split('\n\n');
+      buffer = events.pop() || '';
 
-      const chunk = decoder.decode(value);
-      yield chunk;
+      for (const event of events) {
+        const data = event.split('\n').find(line => line.startsWith('data: '))?.slice(6);
+        if (!data) continue;
+        if (data === '[DONE]') return;
+        const payload = JSON.parse(data);
+        if (payload.error) throw new Error(payload.error.message || 'Chat generation failed');
+        const token = payload.choices?.[0]?.delta?.content;
+        if (typeof token === 'string') yield token;
+      }
+
+      if (done) break;
     }
   }
 

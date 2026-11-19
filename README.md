@@ -1,14 +1,24 @@
+---
+title: EdgeMind
+emoji: 🧠
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 8000
+---
+
 # EdgeMind 🧠
 
-Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy as a containerized service on Railway or AWS with streaming, RAG, and conversation memory.
+Standalone AI assistant API powered by FastAPI and Hugging Face. Run it locally or deploy it as a container to Hugging Face Spaces or Railway. Chat is stateless by default; SQLite history is opt-in.
+
 
 ## ✨ Features
 
 - **🚀 Deployment ready** — Docker image for Railway (IaC) and Amazon ECR / ECS Express Mode
 - **🔄 Streaming** — Token-by-token via Server-Sent Events
 - **🧠 RAG** — FAISS + Sentence Transformers, MMR diversification, source attribution
-- **💾 Conversation memory** — Per-session history in SQLite
-- **🔌 Modular providers** — Local HuggingFace / Cloud Inference API / OpenAI / Ollama
+- **🧠 Conversation context** — Clients send recent turns; server storage is off by default, with optional local SQLite history
+- **🔌 Model providers** — Local Hugging Face Transformers, Hugging Face Inference API, or a mock provider for development
 - **⚡ Production optimizations** — Lazy initialization, background warmup, graceful cold starts
 
 ## 🏗️ Tech Stack
@@ -16,7 +26,7 @@ Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy
 - **Backend:** Python 3.14 / FastAPI / Uvicorn
 - **AI:** HuggingFace Transformers / PyTorch / Sentence Transformers
 - **Search:** FAISS (vector similarity)
-- **Database:** SQLite (aiosqlite)
+- **Optional history:** SQLite (aiosqlite), disabled by default
 - **Deployment:** Docker / Railway (CLI + IaC) / Amazon ECR / ECS Express Mode / Vercel-ready
 
 ## 🚀 Quick Start
@@ -26,9 +36,13 @@ Production-ready AI assistant backend powered by FastAPI and HuggingFace. Deploy
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
+python -m pip install --index-url https://download.pytorch.org/whl/cpu "torch==2.12.1+cpu"
+python -m pip install -r requirements.txt
+cp .env.example .env
 uvicorn app.main:app --reload
 ```
+
+The first local start downloads the embedding model if it is not cached. Set `RAG_LOCAL_FILES_ONLY=true` only when the model is already available locally.
 
 ### Test API
 
@@ -120,9 +134,9 @@ See: [Railway Deployment Guide](docs/railway.md) · [Deployment Guide](docs/depl
 
 ```bash
 # backend/.env
-LLM_PROVIDER=hf_api              # local | hf_api | openai | ollama
+LLM_PROVIDER=hf_api              # local | hf_api | mock
 HF_TOKEN=hf_your_token_here      # HuggingFace API token
-HF_MODEL=Qwen/Qwen2.5-1.5B-Instruct
+HF_MODEL=Qwen/Qwen3-8B
 DEBUG=False
 WEB_SEARCH_ENABLED=True
 ```
@@ -131,8 +145,7 @@ WEB_SEARCH_ENABLED=True
 
 - **`hf_api`** - HuggingFace Inference API (recommended for deployment)
 - **`local`** - Local model on GPU (development only)
-- **`openai`** - OpenAI API (not implemented yet)
-- **`ollama`** - Ollama local server (not implemented yet)
+- **`mock`** - deterministic development provider; no model download or API key required
 
 ## 🌐 Deployment
 

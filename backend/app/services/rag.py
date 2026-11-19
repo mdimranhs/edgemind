@@ -15,14 +15,15 @@ MMR_TOP_K = 10
 
 class RagService:
 
-    def __init__(self) -> None:
-        self.model = SentenceTransformer(
-            EMBEDDING_MODEL,
-            local_files_only=settings.rag_local_files_only,
+    def __init__(self, model: SentenceTransformer | None = None) -> None:
+        self.model = model or SentenceTransformer(
+            EMBEDDING_MODEL, local_files_only=settings.rag_local_files_only
         )
         self.index: faiss.Index | None = None
         self.chunks: list[str] = []
         self.sources: list[str] = []
+        self.chunk_embeddings: np.ndarray | None = None
+
 
     def ingest(self) -> None:
         chunks: list[str] = []
@@ -43,35 +44,37 @@ class RagService:
         dim = embeddings.shape[1]
         self.index = faiss.IndexFlatIP(dim)
         self.index.add(embeddings)
+        self.chunk_embeddings = embeddings
 
     def retrieve(self, query: str, top_k: int = 3) -> list[str]:
-        if self.index is None or not self.chunks:
+        if self.index is None or not self.chunks or self.chunk_embeddings is None:
             return []
         query_vec = self.model.encode([query], show_progress_bar=False)
         query_vec = np.ascontiguousarray(query_vec, dtype=np.float32)
         faiss.normalize_L2(query_vec)
         scores, indices = self.index.search(query_vec, min(MMR_TOP_K, len(self.chunks)))
         candidates = [
-            (self.chunks[i], self.sources[i], float(scores[0][j]))
+            (i, self.chunks[i], self.sources[i], float(scores[0][j]))
             for j, i in enumerate(indices[0]) if i >= 0
         ]
-        candidates = [c for c in candidates if c[2] >= SCORE_THRESHOLD]
+        candidates = [c for c in candidates if c[3] >= SCORE_THRESHOLD]
         selected = self._mmr(candidates, top_k)
         return [
-            f"[Source: {s}]\n{c}" for c, s, _ in selected
+            f"[Source: {s}]\n{c}" for _, c, s, _ in selected
         ]
 
     def _mmr(
-        self, candidates: list[tuple[str, str, float]], top_k: int,
-    ) -> list[tuple[str, str, float]]:
-        if not candidates or top_k >= len(candidates):
+        self, candidates: list[tuple[int, str, str, float]], top_k: int,
+    ) -> list[tuple[int, str, str, float]]:
+        if not candidates or top_k >= len(candidates) or self.chunk_embeddings is None:
             return candidates[:top_k]
-        selected: list[tuple[str, str, float]] = [candidates[0]]
+        selected: list[tuple[int, str, str, float]] = [candidates[0]]
         remaining = candidates[1:]
-        selected_embs = self.model.encode([c[0] for c in selected], show_progress_bar=False)
+        selected_embs = self.chunk_embeddings[[c[0] for c in selected]]
         while len(selected) < top_k and remaining:
-            remaining_embs = self.model.encode([c[0] for c in remaining], show_progress_bar=False)
-            sim_to_query = np.array([c[2] for c in remaining])
+            remaining_indices = [c[0] for c in remaining]
+            remaining_embs = self.chunk_embeddings[remaining_indices]
+            sim_to_query = np.array([c[3] for c in remaining])
             sim_to_selected = np.max(
                 remaining_embs @ selected_embs.T, axis=1
             )
@@ -81,6 +84,7 @@ class RagService:
             selected.append(best)
             selected_embs = np.vstack([selected_embs, remaining_embs[best_idx:best_idx+1]])
         return selected
+
 
     def _chunk(self, text: str) -> list[str]:
         lines = text.strip().split("\n")

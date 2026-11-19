@@ -13,14 +13,20 @@ _provider: BaseLLM | None = None
 _rag_service: RagService | None = None
 _memory: SQLiteHistory | None = None
 _web_search: WebSearchService | None = None
+
+
 def _create_provider() -> BaseLLM:
+    if settings.llm_provider == "mock":
+        from app.providers.mock_llm import MockLLMProvider
+        return MockLLMProvider()
     if settings.llm_provider == "hf_api":
         return HuggingFaceInferenceAPIProvider()
     return HuggingFaceLLMProvider()
 
 
+
 def init_services() -> None:
-    """Initialize chat services on the first request that needs them."""
+    """Initialize core chat services."""
     global _provider, _rag_service, _memory, _web_search
 
     if _provider is None:
@@ -32,7 +38,7 @@ def init_services() -> None:
         _rag_service = RagService()
         _rag_service.ingest()
 
-    if _memory is None:
+    if settings.memory_backend == "sqlite" and _memory is None:
         _memory = SQLiteHistory()
 
     if _web_search is None:
@@ -43,7 +49,7 @@ def get_chat_service() -> ChatService:
     """Return a fully-initialized ChatService."""
     global _provider, _rag_service, _memory, _web_search
 
-    if all(v is not None for v in (_provider, _rag_service, _memory, _web_search)):
+    if all(v is not None for v in (_provider, _rag_service, _web_search)):
         return ChatService(
             llm_service=LLMService(provider=_provider),
             rag_service=_rag_service,
@@ -59,3 +65,4 @@ def get_chat_service() -> ChatService:
         memory=_memory,
         web_search=_web_search,
     )
+

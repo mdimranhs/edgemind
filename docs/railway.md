@@ -69,11 +69,12 @@ Non-secret variables are owned by `.railway/railway.ts` (`env` block). `HF_TOKEN
 | `DEBUG` | `false` | |
 | `WEB_SEARCH_ENABLED` | `true` | Web-search fallback |
 | `RAG_LOCAL_FILES_ONLY` | `true` | Keep RAG grounded in the bundled knowledge base |
+| `MEMORY_BACKEND` | `none` | Use `sqlite` only when per-session server history is needed |
 
 Change a non-secret variable in `railway.ts`, then `railway config plan` → `railway config apply`.
 
 ## Notes & limits
 
 - **Port:** Railway injects a dynamic `$PORT`; the Dockerfile CMD is `uvicorn ... --port ${PORT:-8000}` so it binds whatever Railway provides.
-- **Persistence:** SQLite history and the prebuilt FAISS index live inside the container. Railway's filesystem is ephemeral — conversation memory resets on every redeploy. To persist it, attach a Volume mounted at `/app/app` (where `chat_history.db` is written). This is a future migration; the API stays fully functional without it.
+- **Conversation storage:** Disabled by default. Requests include the recent messages the model needs, and the API does not save transcripts. If you enable `MEMORY_BACKEND=sqlite`, Railway's filesystem is ephemeral; attach a Volume mounted at `/app/app` if you need SQLite history to survive redeploys.
 - **Model downloads:** the embedder (`all-MiniLM-L6-v2`) is baked into the image at build time (`HF_HOME=/opt/huggingface`), so instances never download it at request time.

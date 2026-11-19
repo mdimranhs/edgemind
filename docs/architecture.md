@@ -1,123 +1,37 @@
-# Architecture
+# EdgeMind Architecture
 
-## Production AWS Target
+EdgeMind is a standalone FastAPI service for portfolio and coding assistance. The Next.js portfolio calls the API over HTTP; the backend can also be run and integrated independently.
 
-EdgeMind is intended to deploy as a containerized FastAPI service with the following AWS and hosted-service topology:
+## Request flow
 
-```text
-Next.js frontend (Vercel)
-            |
-            v
-FastAPI container (ECS Express Mode / AWS Fargate)
-       |              |                 |
-       v              v                 v
-RDS PostgreSQL   Private S3 bucket   Hugging Face API
-  + pgvector       for documents       for Qwen inference
-```
+1. `POST /chat` validates the conversation, rejects client supplied system messages, applies per-process rate and concurrency limits, and assigns a request ID.
+2. The chat service adds the server-owned system prompt, optional retrieved knowledge, and optional web search context.
+3. `LLMService` routes generation to the configured local Hugging Face model, Hugging Face Inference API, or mock provider.
+4. Non-streaming calls return a JSON reply. Streaming calls return OpenAI-compatible Server-Sent Events (`choices[0].delta.content`) followed by `data: [DONE]`.
 
-| Component | Service | Purpose |
-|---|---|---|
-| FastAPI | ECS Express Mode / Fargate | Run the EdgeMind API container with HTTPS, health checks, logs, and scaling |
-| Container image | Amazon ECR | Store versioned EdgeMind images |
-| Database | Amazon RDS for PostgreSQL | Chat history and application data |
-| Vector store | `pgvector` in PostgreSQL | Persistent RAG embeddings and similarity search |
-| Documents | Private Amazon S3 bucket | Persistent knowledge files |
-| LLM | Hugging Face Inference API | Qwen cloud inference |
-| Frontend | Vercel | Host the Next.js frontend |
+## State and storage
 
-### Migration path
+Chat is stateless by default (`MEMORY_BACKEND=none`). The client sends the recent conversation turns with each request, so the service does not persist transcripts. An optional SQLite history backend is available for deployments that intentionally need server-side history (`MEMORY_BACKEND=sqlite`); it requires a persistent writable volume and is not suitable for ephemeral serverless filesystems.
 
-1. Build and test the FastAPI Docker image locally.
-2. Create an ECR repository and push an immutable image tag.
-3. Deploy the image through ECS Express Mode and verify the `/health` endpoint.
-4. Migrate SQLite chat history to RDS PostgreSQL.
-5. Replace the in-memory FAISS index with `pgvector`.
-6. Move knowledge files from `backend/knowledge/` to S3 and grant the ECS task least-privilege access.
-7. Store database credentials, Hugging Face tokens, and application secrets in AWS Secrets Manager or SSM Parameter Store.
-8. Configure the Vercel frontend with the ECS HTTPS API URL.
+Knowledge documents under `backend/knowledge` are chunked and embedded at startup. Sentence Transformers creates embeddings, and FAISS keeps the index in process memory. This index is rebuilt when an instance starts. The API currently has no shared external vector database, so each replica loads its own copy.
 
-### Security and operations
+## Deployment considerations
 
-- Keep RDS private and allow PostgreSQL traffic only from the ECS task security group.
-- Keep the S3 bucket private and restrict access to the required bucket actions.
-- Do not commit database passwords, API tokens, or JWT secrets.
-- Use immutable ECR image tags for releases instead of relying only on `latest`.
-- Keep local FAISS and SQLite available for development until the managed services are verified.
+- Configure `CORS_ALLOWED_ORIGINS` with the exact frontend origins in production.
+- Set `HF_TOKEN` for Hugging Face Inference API access; keep it in the host's secret store.
+- The rate limiter and concurrency semaphore are per process. Multiple replicas do not share limits.
+- Configure trusted proxy handling at the deployment boundary. The rate limiter uses the ASGI peer address and does not trust arbitrary forwarded headers.
+- Use a CPU/GPU host with enough memory for the selected local model, or select `LLM_PROVIDER=hf_api` to run inference remotely.
+- `/health` reports process health; it does not promise that a remote model provider is reachable.
 
-## Stack
+## Main components
 
-- **Framework**: FastAPI (Python)
-- **LLM (local)**: Qwen2.5-1.5B-Instruct via HuggingFace Transformers, GPU (GTX 1650 Ti, float16)
-- **LLM (cloud)**: Qwen2.5-Coder-3B-Instruct via HuggingFace Inference API
-- **Provider switch**: `LLM_PROVIDER=local` / `LLM_PROVIDER=hf_api`
-- **Vector Store**: FAISS (in-memory, cosine similarity, IndexFlatIP)
-- **Embeddings**: all-MiniLM-L6-v2 (Sentence Transformers)
-- **Retrieval**: MMR diversification, score threshold (0.3), source attribution
-- **Memory**: SQLite via aiosqlite (persistent per-session history)
+| Component | Responsibility |
+| --- | --- |
+| `app/api/v1/chat.py` | Chat endpoint and JSON/SSE response formatting |
+| `app/api/dependencies.py` | Constructs provider, retrieval, optional memory, and chat service |
+| `app/services/chat_service.py` | Prompt assembly and orchestration |
+| `app/services/rag.py` | Local knowledge ingestion, FAISS retrieval, and source attribution |
+| `app/providers/` | Local, hosted Hugging Face, and mock model implementations |
+| `app/core/rate_limit.py` | Per-process request and inference concurrency limits |
 
-## Layers
-
-```
-Client → FastAPI → ChatService → LLMService → HuggingFaceLLMProvider
-                                → RagService  → FAISS index
-                                → SQLiteHistory → chat_history.db
-```
-
-### API Layer (`api/v1/chat.py`)
-
-Single POST `/chat` endpoint. Accepts `session_id`, `messages`, and `stream` flag. Returns JSON or `StreamingResponse` (SSE).
-
-### Service Layer
-
-| Service | Responsibility |
-|---|---|
-| `ChatService` | Orchestrator — coordinates memory, RAG, web search, and LLM |
-| `LLMService` | Prepends system prompt via `PromptBuilder`, delegates to provider |
-| `PromptBuilder` | Builds full message list with system prompt + optional context injection |
-| `ContextManager` | `trim_history()` drops oldest non-system messages at ~4096 token budget |
-| `RagService` | Ingests `knowledge/*.md`, chunks by `##` headers, embeds, retrieves with MMR + score threshold + source attribution |
-| `SQLiteHistory` | Stores per-session conversation history in SQLite |
-| `WebSearchService` | Optional web search via DuckDuckGo, injected alongside RAG context |
-
-### Provider Layer
-
-| Provider | Status |
-|---|---|
-| `HuggingFaceLLMProvider` | Active — local GPU inference with streaming |
-| `OpenAILLMProvider` | Stub |
-| `OllamaLLMProvider` | Stub |
-| `MockLLMProvider` | Removed |
-
-### Interfaces
-
-- `BaseLLM` → `generate()` / `generate_stream()`
-- `BaseMemory` → `add()` / `get_history()`
-
-## Data Flow
-
-```
-1. POST /chat {session_id, messages, stream}
-2. ChatService loads history from SQLiteHistory(session_id)
-3. Appends new messages, trims via ContextManager.trim_history()
-4. RagService.retrieve(last query) → top-k chunks (MMR, score threshold, source attribution)
-5. WebSearchService.search(last query) → optional web results
-6. PromptBuilder.build(history, context=rag_chunks + web_results) → full prompt
-7. LLMService.generate(full prompt) → provider.generate()
-8. ChatService saves assistant reply to SQLiteHistory
-9. Return response (JSON or SSE stream)
-```
-
-## Knowledge Base
-
-Located at `backend/knowledge/`:
-
-- `profile.md` — Owner bio, background, specialties, communication style
-- `skills.md` — Skill tiers and practical experience with each stack
-- `projects.md` — Project summaries with problem, responsibilities, architecture, lessons learned
-- `system_identity.md` — Assistant behavior, confidence, knowledge usage, and tone rules
-- `philosophy.md` — Engineering philosophy and tradeoff style
-- `coding_preferences.md` — Coding, architecture, API, testing, and deployment preferences
-- `current_learning.md` — Current AI, cloud, backend, and architecture focus
-- `goals.md` — Career direction and long-term goals
-- `contact.md` — Public contact and hiring paths
-- `edgemind.md` — Project description, architecture, features, deployment details

@@ -16,9 +16,9 @@ Send a message to EdgeMind and get a response.
 
 | Field | Type | Default | Description |
 |---|---|---|---|
-| `session_id` | string | `"default"` | Conversation session ID for memory isolation |
-| `messages` | array[ChatMessage] | `[]` | Messages for this turn (typically 1 user message) |
-| `stream` | boolean | `false` | If `true`, returns SSE stream instead of JSON |
+| `session_id` | string | `"default"` | Session key used only when `MEMORY_BACKEND=sqlite`; ignored in stateless mode |
+| `messages` | array[ChatMessage] | required | Recent conversation turns, ending with a user message |
+| `stream` | boolean | `false` | If `true`, returns a Server-Sent Events stream |
 
 ### ChatMessage
 
@@ -26,7 +26,7 @@ Send a message to EdgeMind and get a response.
 {"role": "user", "content": "Hello"}
 ```
 
-- `role`: `"system"` | `"user"` | `"assistant"`
+- `role`: `"user"` | `"assistant"`; clients cannot provide system messages
 - `content`: string
 
 ### Response (non-streaming)
@@ -40,16 +40,18 @@ Send a message to EdgeMind and get a response.
 
 ### Response (streaming)
 
-When `stream: true`, returns `text/event-stream` with tokens delivered progressively:
+When `stream: true`, returns `text/event-stream` using OpenAI-compatible delta events, followed by `[DONE]`:
 
 ```
-Hel
-lo
-! How
- can
- I
- ...
+data: {"choices":[{"delta":{"content":"Hello"}}]}
+
+data: {"choices":[{"delta":{"content":"!"}}]}
+
+data: [DONE]
+
 ```
+
+Stream errors use an `event: error` event with an OpenAI-compatible JSON `error.message` field. The HTTP status cannot change after streaming has started.
 
 ## GET /
 
